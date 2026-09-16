@@ -41,7 +41,11 @@ public class VictorySearch extends Search {
   @Override
   public Search updateInfo(MessageManager messageManager) {
     super.updateInfo(messageManager);
-    visited.addAll(worldInfo.getChanged().getChangedEntities());
+    for (EntityID id : worldInfo.getChanged().getChangedEntities()) {
+      if (isSearchable(worldInfo.getEntity(id))) {
+        visited.add(id);
+      }
+    }
     if (result != null && agentInfo.getPosition().equals(result)) {
       visited.add(result);
       result = null;

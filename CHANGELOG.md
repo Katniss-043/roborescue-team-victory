@@ -50,6 +50,19 @@ large maps.
 `config/module.cfg` maps only these permitted modules and `config/launch.cfg`
 sets `team.name: victory`.
 
+### Iteration 4
+
+- `VictoryBuildingDetector` now measures fire density across adjacent roads,
+  and uses deterministic ID tie-breaking.
+- Ambulance allocation now keeps a passenger assigned to its own ambulance and
+  excludes passengers from new assignments.
+- Police road allocation now prioritises roads near living buried people,
+  followed by refuge and fire access, with deterministic nearest-agent ties.
+- Search state only marks changed buildings as visited; unrelated road and
+  human updates no longer suppress building searches.
+- Path planning and clustering use deterministic queue/tie ordering, and the
+  clustering cache key includes every map-area ID.
+
 ## Original code
 
 The unmodified sample complex-module files are retained in

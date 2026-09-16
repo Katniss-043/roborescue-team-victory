@@ -60,7 +60,8 @@ public class VictoryRoadDetector extends RoadDetector {
       targets = local;
     }
     targets.sort(Comparator.comparingLong(this::priority).reversed()
-        .thenComparingInt(road -> distance(agentInfo.me(), road)));
+        .thenComparingInt(road -> distance(agentInfo.me(), road))
+        .thenComparingInt(road -> road.getID().getValue()));
     result = null;
     for (Road target : targets) {
       pathPlanning.setFrom(agentInfo.getPosition());

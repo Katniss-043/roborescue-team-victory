@@ -374,8 +374,11 @@ public class VictoryClustering extends Clustering {
   }
 
   private String layoutKey(List<Area> areas, int count) {
-    return count + ":" + areas.size() + ":" + areas.get(0).getID().getValue()
-        + ":" + areas.get(areas.size() - 1).getID().getValue();
+    StringBuilder key = new StringBuilder().append(count).append(':').append(areas.size());
+    for (Area area : areas) {
+      key.append(':').append(area.getID().getValue());
+    }
+    return key.toString();
   }
 
   private static class PathNode {

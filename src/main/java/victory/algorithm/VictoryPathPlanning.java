@@ -100,7 +100,8 @@ public class VictoryPathPlanning extends PathPlanning {
       return this;
     }
 
-    PriorityQueue<Node> open = new PriorityQueue<>(Comparator.comparingLong(node -> node.cost));
+    PriorityQueue<Node> open = new PriorityQueue<>(Comparator.comparingLong((Node node) -> node.cost)
+        .thenComparingInt(node -> node.id.getValue()));
     Map<EntityID, Long> distance = new HashMap<>();
     Map<EntityID, EntityID> previous = new HashMap<>();
     distance.put(from, 0L);

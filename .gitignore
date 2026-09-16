@@ -30,3 +30,8 @@ bin
 # Project
 precomp_data
 test-results
+
+# Supplied local competition dependencies. Keep these outside the team
+# submission; settings.gradle supports both root-level and sibling copies.
+/adf-core-java-master/
+/rcrs-server-master/

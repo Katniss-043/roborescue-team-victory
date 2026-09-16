@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import rescuecore2.standard.entities.Building;
+import rescuecore2.standard.entities.Human;
 import rescuecore2.standard.entities.PoliceForce;
 import rescuecore2.standard.entities.Road;
 import rescuecore2.standard.entities.StandardEntity;
@@ -53,13 +54,17 @@ public class VictoryPoliceTargetAllocator extends PoliceTargetAllocator {
     police.removeIf(force -> assignments.containsKey(force.getID()));
     Set<EntityID> assignedTargets = new HashSet<>(assignments.values());
     roads.removeIf(road -> assignedTargets.contains(road.getID()));
-    roads.sort(Comparator.comparingLong(this::priority).reversed());
+    roads.sort(Comparator.comparingLong(this::priority).reversed()
+        .thenComparingInt(road -> distance(agentInfo.me(), road))
+        .thenComparingInt(road -> road.getID().getValue()));
     for (Road road : roads) {
       PoliceForce best = null;
       int bestDistance = Integer.MAX_VALUE;
       for (PoliceForce force : police) {
         int distance = distance(force, road);
-        if (distance < bestDistance) {
+        if (distance < bestDistance
+            || (distance == bestDistance && best != null
+            && force.getID().getValue() < best.getID().getValue())) {
           best = force;
           bestDistance = distance;
         }
@@ -118,11 +123,31 @@ public class VictoryPoliceTargetAllocator extends PoliceTargetAllocator {
       }
       if (neighbour.getStandardURN() == StandardEntityURN.REFUGE) {
         score += 1_000_000L;
-      } else if (neighbour instanceof Building && ((Building) neighbour).isOnFire()) {
+      }
+      if (containsCasualty(neighbour)) {
+        score += 700_000L;
+      }
+      if (neighbour instanceof Building && ((Building) neighbour).isOnFire()) {
         score += 200_000L;
       }
     }
     return score;
+  }
+
+  private boolean containsCasualty(StandardEntity area) {
+    for (StandardEntity entity : worldInfo.getEntitiesOfType(StandardEntityURN.CIVILIAN,
+        StandardEntityURN.AMBULANCE_TEAM, StandardEntityURN.FIRE_BRIGADE,
+        StandardEntityURN.POLICE_FORCE)) {
+      if (entity instanceof Human) {
+        Human human = (Human) entity;
+        if (human.isPositionDefined() && human.getPosition().equals(area.getID())
+            && human.isHPDefined() && human.getHP() > 0
+            && human.isBuriednessDefined() && human.getBuriedness() > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private int distance(StandardEntity from, StandardEntity to) {

@@ -94,7 +94,8 @@ public class VictoryHumanDetector extends HumanDetector {
       return false;
     }
     StandardEntity position = worldInfo.getPosition(human);
-    if (position == null || position.getStandardURN() == StandardEntityURN.REFUGE) {
+    if (position == null || position.getStandardURN() == StandardEntityURN.REFUGE
+        || position.getStandardURN() == StandardEntityURN.AMBULANCE_TEAM) {
       return false;
     }
     int buriedness = human.isBuriednessDefined() ? human.getBuriedness() : 0;

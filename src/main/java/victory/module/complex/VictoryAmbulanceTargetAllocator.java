@@ -53,13 +53,16 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
     Set<EntityID> assignedTargets = new HashSet<>(assignments.values());
     targets.removeIf(target -> assignedTargets.contains(target.getID()));
     targets.sort(Comparator.comparingLong(this::survivalWindow)
-        .thenComparingInt(this::civilianPenalty));
+        .thenComparingInt(this::civilianPenalty)
+        .thenComparingInt(target -> target.getID().getValue()));
     for (Human target : targets) {
       AmbulanceTeam best = null;
       int bestDistance = Integer.MAX_VALUE;
       for (AmbulanceTeam team : teams) {
         int travelDistance = distance(team, target);
-        if (travelDistance < bestDistance) {
+        if (travelDistance < bestDistance
+            || (travelDistance == bestDistance && best != null
+            && team.getID().getValue() < best.getID().getValue())) {
           best = team;
           bestDistance = travelDistance;
         }
@@ -87,14 +90,49 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
     assignments.entrySet().removeIf(entry -> {
       StandardEntity team = worldInfo.getEntity(entry.getKey());
       StandardEntity target = worldInfo.getEntity(entry.getValue());
-      return !(team instanceof AmbulanceTeam) || !isAvailable((AmbulanceTeam) team)
-          || !(target instanceof Human) || !isRescuable((Human) target);
+      if (!(team instanceof AmbulanceTeam) || !isOperational((AmbulanceTeam) team)
+          || !(target instanceof Human)) {
+        return true;
+      }
+      return !isValidAssignment((AmbulanceTeam) team, (Human) target);
     });
   }
 
   private boolean isAvailable(AmbulanceTeam team) {
+    return isOperational(team) && !hasPassenger(team);
+  }
+
+  private boolean isOperational(AmbulanceTeam team) {
     return team.isPositionDefined()
         && (!team.isBuriednessDefined() || team.getBuriedness() == 0);
+  }
+
+  private boolean isValidAssignment(AmbulanceTeam team, Human target) {
+    if (!target.isHPDefined() || target.getHP() <= 0 || !target.isPositionDefined()) {
+      return false;
+    }
+    StandardEntity position = worldInfo.getPosition(target);
+    if (position == null || position.getStandardURN() == StandardEntityURN.REFUGE) {
+      return false;
+    }
+    if (position.getStandardURN() == StandardEntityURN.AMBULANCE_TEAM) {
+      return position.getID().equals(team.getID());
+    }
+    return isRescuable(target);
+  }
+
+  private boolean hasPassenger(AmbulanceTeam team) {
+    for (StandardEntity entity : worldInfo.getEntitiesOfType(StandardEntityURN.CIVILIAN,
+        StandardEntityURN.AMBULANCE_TEAM, StandardEntityURN.FIRE_BRIGADE,
+        StandardEntityURN.POLICE_FORCE)) {
+      if (entity instanceof Human) {
+        Human human = (Human) entity;
+        if (human.isPositionDefined() && team.getID().equals(human.getPosition())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private List<Human> casualties() {
@@ -114,7 +152,8 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
       return false;
     }
     StandardEntity position = worldInfo.getPosition(human);
-    if (position == null || position.getStandardURN() == StandardEntityURN.REFUGE) {
+    if (position == null || position.getStandardURN() == StandardEntityURN.REFUGE
+        || position.getStandardURN() == StandardEntityURN.AMBULANCE_TEAM) {
       return false;
     }
     return (human.isBuriednessDefined() && human.getBuriedness() > 0)

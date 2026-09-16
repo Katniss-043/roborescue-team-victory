@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import rescuecore2.standard.entities.Building;
+import rescuecore2.standard.entities.Road;
 import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.standard.entities.StandardEntityURN;
 import rescuecore2.worldmodel.EntityID;
@@ -56,7 +57,8 @@ public class VictoryBuildingDetector extends BuildingDetector {
       fires = localFires;
     }
     fires.sort(Comparator.comparingLong(this::priority).reversed()
-        .thenComparingInt(building -> distance(agentInfo.me(), building)));
+        .thenComparingInt(building -> distance(agentInfo.me(), building))
+        .thenComparingInt(building -> building.getID().getValue()));
     result = fires.isEmpty() ? null : fires.get(0).getID();
     return this;
   }
@@ -78,9 +80,32 @@ public class VictoryBuildingDetector extends BuildingDetector {
     long stage = fieryness == 1 ? 6_000_000L : fieryness == 2 ? 5_000_000L
         : fieryness == 3 ? 1_000_000L : 3_000_000L;
     long temperature = building.isTemperatureDefined() ? building.getTemperature() : 0;
+    long fireDensity = Math.min(6, nearbyFireCount(building)) * 350_000L;
     // Gas stations must be handled early because their escalation is especially costly.
     long gasBonus = building.getStandardURN() == StandardEntityURN.GAS_STATION ? 2_000_000L : 0;
-    return stage + gasBonus + Math.min(temperature, 1_000_000);
+    return stage + gasBonus + fireDensity + Math.min(temperature, 1_000_000);
+  }
+
+  /** Counts fire buildings directly connected to this building by a road. */
+  private int nearbyFireCount(Building building) {
+    Set<EntityID> nearbyBuildings = new HashSet<>();
+    for (EntityID firstHopID : building.getNeighbours()) {
+      StandardEntity firstHop = worldInfo.getEntity(firstHopID);
+      if (firstHop instanceof Building) {
+        if (!firstHopID.equals(building.getID()) && ((Building) firstHop).isOnFire()) {
+          nearbyBuildings.add(firstHopID);
+        }
+      } else if (firstHop instanceof Road) {
+        for (EntityID secondHopID : ((Road) firstHop).getNeighbours()) {
+          StandardEntity secondHop = worldInfo.getEntity(secondHopID);
+          if (secondHop instanceof Building && !secondHopID.equals(building.getID())
+              && ((Building) secondHop).isOnFire()) {
+            nearbyBuildings.add(secondHopID);
+          }
+        }
+      }
+    }
+    return nearbyBuildings.size();
   }
 
   private int distance(StandardEntity from, StandardEntity to) {
