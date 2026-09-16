@@ -1,0 +1,14 @@
+rootProject.name = 'adf-sample-agent-java'
+
+// Build against the Java-17 source snapshots supplied with the competition,
+// not the online master branches (which have since moved to Java 21).
+includeBuild('../rcrs-server-master') {
+  dependencySubstitution {
+    substitute module('com.github.roborescue:rcrs-server') using project(':')
+  }
+}
+includeBuild('../adf-core-java-master') {
+  dependencySubstitution {
+    substitute module('com.github.roborescue:adf-core-java') using project(':')
+  }
+}
