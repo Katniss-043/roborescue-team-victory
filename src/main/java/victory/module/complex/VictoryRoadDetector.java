@@ -131,6 +131,7 @@ public class VictoryRoadDetector extends RoadDetector {
       if (entity instanceof Human) {
         Human human = (Human) entity;
         if (human.isPositionDefined() && human.getPosition().equals(area.getID())
+            && human.isHPDefined() && human.getHP() > 0
             && human.isBuriednessDefined() && human.getBuriedness() > 0) {
           return true;
         }

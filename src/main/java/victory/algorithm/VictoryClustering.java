@@ -376,7 +376,21 @@ public class VictoryClustering extends Clustering {
   private String layoutKey(List<Area> areas, int count) {
     StringBuilder key = new StringBuilder().append(count).append(':').append(areas.size());
     for (Area area : areas) {
+      Pair<Integer, Integer> location = worldInfo.getLocation(area);
       key.append(':').append(area.getID().getValue());
+      if (location != null) {
+        key.append('@').append(location.first()).append(',').append(location.second());
+      }
+      List<Integer> neighbours = new ArrayList<>();
+      for (EntityID neighbour : area.getNeighbours()) {
+        neighbours.add(neighbour.getValue());
+      }
+      Collections.sort(neighbours);
+      key.append('[');
+      for (Integer neighbour : neighbours) {
+        key.append(neighbour).append(',');
+      }
+      key.append(']');
     }
     return key.toString();
   }

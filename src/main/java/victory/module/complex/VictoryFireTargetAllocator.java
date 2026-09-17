@@ -62,7 +62,8 @@ public class VictoryFireTargetAllocator extends FireTargetAllocator {
         trappedResponders.add((Human) entity);
       }
     }
-    trappedResponders.sort(Comparator.comparingInt(this::buriedness).reversed());
+    trappedResponders.sort(Comparator.comparingInt(this::buriedness).reversed()
+        .thenComparingInt(target -> target.getID().getValue()));
     brigades.removeIf(brigade -> assignments.containsKey(brigade.getID()));
     Set<EntityID> assignedTargets = new HashSet<>(assignments.values());
     trappedResponders.removeIf(target -> assignedTargets.contains(target.getID()));
@@ -71,7 +72,9 @@ public class VictoryFireTargetAllocator extends FireTargetAllocator {
       int bestDistance = Integer.MAX_VALUE;
       for (FireBrigade brigade : brigades) {
         int distance = distance(brigade, target);
-        if (distance < bestDistance) {
+        if (distance < bestDistance
+            || (distance == bestDistance && best != null
+                && brigade.getID().getValue() < best.getID().getValue())) {
           best = brigade;
           bestDistance = distance;
         }

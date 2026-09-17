@@ -55,7 +55,8 @@ public class VictoryHumanDetector extends HumanDetector {
       targets = local;
     }
     targets.sort(Comparator.comparingLong(this::survivalWindow)
-        .thenComparingInt(target -> distance(agentInfo.me(), target)));
+        .thenComparingInt(target -> distance(agentInfo.me(), target))
+        .thenComparingInt(target -> target.getID().getValue()));
     result = targets.isEmpty() ? null : targets.get(0).getID();
     return this;
   }

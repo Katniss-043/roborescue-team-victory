@@ -20,6 +20,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import rescuecore2.misc.Pair;
 import rescuecore2.standard.entities.Area;
+import rescuecore2.standard.entities.Blockade;
 import rescuecore2.standard.entities.Road;
 import rescuecore2.standard.entities.StandardEntity;
 import rescuecore2.worldmodel.EntityID;
@@ -41,6 +42,7 @@ public class VictoryPathPlanning extends PathPlanning {
       return size() > CACHE_SIZE;
     }
   };
+  private final Map<EntityID, List<EntityID>> sortedNeighbours = new HashMap<>();
 
   private EntityID from;
   private Collection<EntityID> destinations = Collections.emptyList();
@@ -50,6 +52,28 @@ public class VictoryPathPlanning extends PathPlanning {
   public VictoryPathPlanning(AgentInfo ai, WorldInfo wi, ScenarioInfo si,
       ModuleManager moduleManager, DevelopData developData) {
     super(ai, wi, si, moduleManager, developData);
+    indexNeighbours();
+  }
+
+  /**
+   * The map topology is static during a simulation. Keeping one sorted
+   * adjacency list avoids allocating and sorting the same neighbour set on
+   * every Dijkstra expansion.
+   */
+  private void indexNeighbours() {
+    for (StandardEntity entity : worldInfo) {
+      if (!(entity instanceof Area)) {
+        continue;
+      }
+      List<EntityID> neighbours = new ArrayList<>();
+      for (EntityID neighbour : ((Area) entity).getNeighbours()) {
+        if (worldInfo.getEntity(neighbour) instanceof Area) {
+          neighbours.add(neighbour);
+        }
+      }
+      neighbours.sort(Comparator.comparingInt(EntityID::getValue));
+      sortedNeighbours.put(entity.getID(), Collections.unmodifiableList(neighbours));
+    }
   }
 
   @Override
@@ -67,14 +91,15 @@ public class VictoryPathPlanning extends PathPlanning {
   @Override
   public VictoryPathPlanning updateInfo(MessageManager messageManager) {
     super.updateInfo(messageManager);
-    boolean changedRoad = false;
+    boolean changedRoadNetwork = false;
     for (EntityID id : worldInfo.getChanged().getChangedEntities()) {
-      if (worldInfo.getEntity(id) instanceof Road) {
-        changedRoad = true;
+      StandardEntity changed = worldInfo.getEntity(id);
+      if (changed instanceof Road || changed instanceof Blockade) {
+        changedRoadNetwork = true;
         break;
       }
     }
-    if (changedRoad) {
+    if (changedRoadNetwork) {
       roadVersion++;
       cache.clear();
     }
@@ -122,10 +147,7 @@ public class VictoryPathPlanning extends PathPlanning {
       if (!(entity instanceof Area)) {
         continue;
       }
-      for (EntityID next : ((Area) entity).getNeighbours()) {
-        if (!(worldInfo.getEntity(next) instanceof Area)) {
-          continue;
-        }
+      for (EntityID next : sortedNeighbours.getOrDefault(current.id, Collections.emptyList())) {
         long candidate = current.cost + edgeCost(current.id, next);
         if (candidate < distance.getOrDefault(next, Long.MAX_VALUE)) {
           distance.put(next, candidate);

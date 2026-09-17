@@ -61,9 +61,8 @@ public class VictorySearch extends Search {
     Set<EntityID> candidates = candidates();
     candidates.removeAll(visited);
     if (candidates.isEmpty()) {
-      visited.clear();
-      candidates = candidates();
-      candidates.remove(agentInfo.getPosition());
+      result = null;
+      return this;
     }
     result = null;
     if (!candidates.isEmpty()) {
