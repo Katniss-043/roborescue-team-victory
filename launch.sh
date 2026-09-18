@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOADER="adf.impl.DefaultLoader"
+LOADER="victory.VictoryLoader"
 PARAMS=$*
 
 cd `dirname $0`

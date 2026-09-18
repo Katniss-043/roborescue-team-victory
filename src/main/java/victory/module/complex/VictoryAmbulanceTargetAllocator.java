@@ -118,7 +118,7 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
     if (position.getStandardURN() == StandardEntityURN.AMBULANCE_TEAM) {
       return position.getID().equals(team.getID());
     }
-    return isRescuable(target);
+    return isTransportReady(target);
   }
 
   private boolean hasPassenger(AmbulanceTeam team) {
@@ -140,15 +140,23 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
     for (StandardEntity entity : worldInfo.getEntitiesOfType(StandardEntityURN.CIVILIAN,
         StandardEntityURN.AMBULANCE_TEAM, StandardEntityURN.FIRE_BRIGADE,
         StandardEntityURN.POLICE_FORCE)) {
-      if (entity instanceof Human && isRescuable((Human) entity)) {
+      if (entity instanceof Human && isTransportReady((Human) entity)) {
         targets.add((Human) entity);
       }
     }
     return targets;
   }
 
-  private boolean isRescuable(Human human) {
+  /**
+   * The current rules assign digging to fire brigades. Keep ambulance-centre
+   * commands limited to civilians an ambulance can load immediately; otherwise
+   * an impossible command can remain active while newly freed civilians wait.
+   */
+  private boolean isTransportReady(Human human) {
     if (!human.isHPDefined() || human.getHP() <= 0 || !human.isPositionDefined()) {
+      return false;
+    }
+    if (human.getStandardURN() != StandardEntityURN.CIVILIAN) {
       return false;
     }
     StandardEntity position = worldInfo.getPosition(human);
@@ -156,8 +164,9 @@ public class VictoryAmbulanceTargetAllocator extends AmbulanceTargetAllocator {
         || position.getStandardURN() == StandardEntityURN.AMBULANCE_TEAM) {
       return false;
     }
-    return (human.isBuriednessDefined() && human.getBuriedness() > 0)
-        || (human.isDamageDefined() && human.getDamage() > 0);
+    int buriedness = human.isBuriednessDefined() ? human.getBuriedness() : 0;
+    int damage = human.isDamageDefined() ? human.getDamage() : 0;
+    return buriedness == 0 && damage > 0;
   }
 
   private long survivalWindow(Human human) {
